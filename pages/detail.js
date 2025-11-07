@@ -1,5 +1,15 @@
 import React from 'react'
 import _ from 'lodash'
+import Image from 'next/image'
+import Link from 'next/link'
+
+/* https://docs.fontawesome.com/web/use-with/react/add-icons#add-whole-styles */
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { fas } from '@fortawesome/free-solid-svg-icons'
+import { far } from '@fortawesome/free-regular-svg-icons'
+import { fab } from '@fortawesome/free-brands-svg-icons'
+import { library } from '@fortawesome/fontawesome-svg-core'
+library.add(fas, far, fab)
 
 class Detail extends React.Component {
   constructor(props) {
@@ -26,6 +36,16 @@ class Detail extends React.Component {
         this.showFigures = true
       }
     }
+    this.showCover = false
+    this.getCovers()
+    if (this.covers[this.publication.id]) {
+      this.showCover = true
+    }
+    this.showPDF = false
+    this.getPDFs()
+    if (this.pdfs[this.publication.id]) {
+      this.showPDF = true
+    }
   }
 
   getProceedings() {
@@ -36,7 +56,7 @@ class Detail extends React.Component {
       this.proceeding = {}
     }
     this.proceeding.series = `${conference} '${year}`
-    if (this.publication.pages < 4) {
+    if (this.publication.pages < 4 && this.proceeding.booktitle && !this.proceeding.booktitle.toString().includes("Adjunct")) {
       this.proceeding.booktitle = 'Adjunct ' + this.proceeding.booktitle
     }
   }
@@ -75,12 +95,35 @@ class Detail extends React.Component {
     .filter(dir => dir.name === 'images')[0].children
     .filter(dir => dir.name === 'publications')[0].children
     .filter(dir => dir.name === 'figures')[0].children
-
     this.figures = {}
     for (let dir of dirs) {
       let id = dir.name
       let files = dir.children.map(file => file.path )
       this.figures[id] = files
+    }
+  }
+
+  getCovers() {
+    const dirs =
+    this.props.files.children
+    .filter(dir => dir.name === 'images')[0].children
+    .filter(dir => dir.name === 'publications')[0].children
+    .filter(dir => dir.name === 'cover')[0].children
+    this.covers = {}
+    for (let dir of dirs) {
+      let id = dir.name.split(".")[0]
+      this.covers[id] = dir.path
+    }
+  }
+
+  getPDFs() {
+    const dirs =
+    this.props.files.children
+    .filter(dir => dir.name === 'publications')[0].children
+    this.pdfs = {}
+    for (let dir of dirs) {
+      let id = dir.name.split(".")[0]
+      this.pdfs[id] = dir.path
     }
   }
 
@@ -104,9 +147,9 @@ class Detail extends React.Component {
     }
 
     return (
-      <div className="item">
+      <div className="item" key={ href }>
         <a href={ href } target="_blank" style={{ fontSize: '1.2em' }}>
-          <i className={ icon } />
+          <FontAwesomeIcon icon={ icon } />
           { title }
         </a>
       </div>
@@ -128,14 +171,16 @@ class Detail extends React.Component {
       <div id="publication">
         <div className="block">
           <div id="breadcrumb" className="ui breadcrumb">
-            <a className="section" href="/publications">Publications</a>
-            <i className="right angle icon divider"></i>
+            <Link className="section" href="/publications">Publications</Link>
+            <FontAwesomeIcon icon="fas fa-angle-right" />
             <a className="active section">{ this.publication.series }</a>
           </div>
 
           <div className="ui stackable grid" style={{ marginTop: '10px' }}>
             <div className="three wide column" style={{ margin: 'auto' }}>
-              <img className="cover" src={ `/static/images/publications/cover/${ this.publication.id }.jpg` } />
+              {this.showCover && 
+                <Image width={0} height={0} className="cover" alt={ `${ this.publication.id } cover` } src={ `/static/images/publications/cover/${ this.publication.id }.jpg` } />
+              }
             </div>
             <div className="thirteen wide column">
               { this.props.short &&
@@ -151,7 +196,7 @@ class Detail extends React.Component {
                     return (
                       this.names.includes(author) ?
                       <a href={ `/people/${ this.namesId[author] }` } key={ author }>
-                        <img src={ `/static/images/people/${ this.namesId[author] }.jpg`} className="ui circular spaced image mini-profile" />
+                        <Image width={0} height={0} alt={ `${ this.namesId[author] } photo` } src={ `/static/images/people/${ this.namesId[author] }.jpg`} className="ui circular spaced image mini-profile" />
                         <strong>{author}</strong>
                       </a>
                       :
@@ -160,11 +205,13 @@ class Detail extends React.Component {
                   }).reduce((prev, current) => [prev, ' , ', current])
                 }
               </p>
-              <p>
-                <a href={ `https://raw.githubusercontent.com/ucalgary-ilab/ucalgary-ilab.github.io/master/static/publications/${this.publication.id}.pdf` } target="_blank">
-                  <i className="far fa-file-pdf fa-fw"></i>{ `${this.publication.id}.pdf` }
-                </a>
-              </p>
+              { this.showPDF && 
+                <p>
+                  <a href={ `https://raw.githubusercontent.com/ucalgary-ilab/ucalgary-ilab.github.io/main/static/publications/${this.publication.id}.pdf` } target="_blank">
+                    <FontAwesomeIcon icon="far fa-file-pdf fa-fw" />{ `${this.publication.id}.pdf` }
+                  </a>
+                </p>
+              }
             </div>
           </div>
         </div>
@@ -176,7 +223,7 @@ class Detail extends React.Component {
                 width="100%"
                 height="315"
                 src={`${this.publication.embed}`}
-                srcDoc={`<style>*{padding:0;margin:0;overflow:hidden}html,body{height:100%}img,span{position:absolute;width:100%;top:0;bottom:0;margin:auto}span{height:1.5em;text-align:center;font:48px/1.5 sans-serif;color:white;text-shadow:0 0 0.5em black}</style><a href=${this.publication.embed}?autoplay=1><img src=${this.publication.embedThumbnail}><span>▶</span></a>`}
+                srcDoc={`<style>*{padding:0;margin:0;overflow:hidden}html,body{height:100%}img,span{position:absolute;width:100%;top:0;bottom:0;margin:auto}span{height:1.5em;text-align:center;font:48px/1.5 sans-serif;color:white;text-shadow:0 0 0.5em black}</style><a href=${this.publication.embed}?autoplay=1><Image width={0} height={0} alt=${this.publication.embedThumbnail} src=${this.publication.embedThumbnail}><span>▶</span></a>`}
                 frameBorder="0"
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen={true}
@@ -195,7 +242,7 @@ class Detail extends React.Component {
           { this.publication.keywords &&
             <div className="ui large basic labels">
               Keywords: &nbsp;
-              { this.publication.keywords.split(', ').map((keyword) => {
+              { [...new Set(this.publication.keywords.split(', '))].map((keyword) => {
                 return <span className="ui brown basic label" key={ keyword }>{ _.startCase(keyword) }</span>
               }) }
             </div>
@@ -207,17 +254,24 @@ class Detail extends React.Component {
             <p style={{ lineHeight: "160%" }}>
               { this.publication.authors.reduce((prev, current) => [prev, ', ', current]) }.&nbsp;
               <b>{ this.publication.title }</b>.&nbsp;
-              <i>{ `In ${this.proceeding.booktitle} (${ this.proceeding.series })`  }</i>.&nbsp;
+              <i>
+              { this.proceeding.booktitle && <>In {this.proceeding.booktitle}</> }
+              { this.publication.series && <>({ this.publication.series })</> }
+              </i>.&nbsp;
               { this.proceeding.publisher }&nbsp;
-              Page: 1-{ this.publication.pages }.&nbsp;
-              DOI: <a href={ this.publication.doi} target="_blank">{ this.publication.doi }</a>
+              { this.publication.pages &&
+                <>Page: 1-{ this.publication.pages }.&nbsp;</>
+              }
+              { this.publication.doi &&
+                <>DOI: <a href={ this.publication.doi} target="_blank">{ this.publication.doi }</a></>
+              }
             </p>
           </div>
         </div>
         {this.hasMaterialLinks(this.publication) &&
           <div className="block">
             <h1>Materials</h1>
-            <div class="ui horizontal small divided link list">
+            <div className="ui horizontal small divided link list">
               {['github', 'gitlab'].map((key) => {
                 return this.renderLink(this.publication, key)
               })}
@@ -233,7 +287,7 @@ class Detail extends React.Component {
                 width="100%"
                 height="315"
                 src={`${this.publication.talkEmbed}`}
-                srcDoc={`<style>*{padding:0;margin:0;overflow:hidden}html,body{height:100%}img,span{position:absolute;width:100%;top:0;bottom:0;margin:auto}span{height:1.5em;text-align:center;font:48px/1.5 sans-serif;color:white;text-shadow:0 0 0.5em black}</style><a href=${this.publication.talkEmbed}?autoplay=1><img src=${this.publication.talkEmbedThumbnail}><span>▶</span></a>`}
+                srcDoc={`<style>*{padding:0;margin:0;overflow:hidden}html,body{height:100%}img,span{position:absolute;width:100%;top:0;bottom:0;margin:auto}span{height:1.5em;text-align:center;font:48px/1.5 sans-serif;color:white;text-shadow:0 0 0.5em black}</style><a href=${this.publication.talkEmbed}?autoplay=1><Image width={0} height={0} alt=${this.publication.talkEmbedThumbnail} src=${this.publication.talkEmbedThumbnail}><span>▶</span></a>`}
                 frameBorder="0"
                 allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen={true}
@@ -254,7 +308,7 @@ class Detail extends React.Component {
                   return (
                     <a className="card" href={ `/${src}` } target="_blank" >
                       <div className="image">
-                        <img src={ `/${src}` } />
+                        <Image width={0} height={0} alt={ `${src} figure` } src={ `/${src}` } />
                       </div>
                     </a>
                   )

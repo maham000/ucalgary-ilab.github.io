@@ -1,6 +1,9 @@
 name: Kevin Van
-type: undergrad
+type: alumni
+past: undergrad
 email: kevin.van@ucalgary.ca
 url: https://kevin-van.github.io/Website/
 github: https://github.com/kevin-van
 linkedin: https://www.linkedin.com/in/kevin-van-a66130204/
+labs: 
+- utouch
